@@ -15,7 +15,7 @@ using namespace std;
 int noOfLines, noOfChars;
 vector<string> wheelChars;
 vector<string> dictonary;
-
+vector<string> finalStrings;
 
 
 void ReadWheel(string wheelPath)
@@ -49,10 +49,10 @@ void ReadDictonary(string path)
 		}
 	}
 
-	for (int i = 0; i < dictonary.size(); i++)
+	/*for (int i = 0; i < dictonary.size(); i++)
 	{
 		cout << dictonary[i] << endl;
-	}
+	}*/
 
 
 }
@@ -60,8 +60,82 @@ void ReadDictonary(string path)
 
 
 
+void createOffset(int mainX, int k)
+{
+
+	if (k == noOfChars)
+	{
+		return;
+	}
+	else
+	{
+		string test = "";
+
+		test.push_back(wheelChars[0].at(mainX));
+		for (int y = 1; y < noOfLines; y++)
+		{
+			test.push_back(wheelChars[y].at(k));
+		}
+		finalStrings.emplace_back(test);
+
+		createOffset(mainX, ++k);
+
+	}
+}
+
+string test = "";
 
 
+void CreateOffset2(int lockedX, int lockedY, int k, int l)
+{
+	if (k == noOfChars)
+	{
+		if (lockedY < noOfChars)
+			lockedX++;
+		k = 0;
+	}
+
+
+	if (l == noOfLines)
+	{
+		if (lockedY < noOfLines)
+			lockedY++;
+		l = 0;
+	}
+
+	if (lockedX == noOfChars && lockedY == noOfLines)
+	{
+		return;
+	}
+
+	for (int y = 0; y < noOfLines; y++)
+	{
+		if (y == 0)
+		{
+			test.push_back(wheelChars[y].at(lockedX));
+		}
+		else
+		{
+			if (y == lockedY)
+			{
+				test.push_back(wheelChars[y].at(l));
+				l++;
+			}
+			else
+			{
+				test.push_back(wheelChars[y].at(k));
+				k++;
+			}
+		}
+	}
+
+	finalStrings.push_back(test);
+	test = "";
+
+
+	CreateOffset2(lockedX, lockedY, k, l);
+
+}
 
 
 
@@ -80,15 +154,47 @@ int main(int argc, char* argv[])
 
 	ReadWheel(argv[1]);
 	ReadDictonary(argv[2]);
+	////string 
+
+	string test = "";
+
+	int c = 0;
 
 
+	cout << c << endl << endl << endl;
+
+	for (int i = 0; i < noOfChars; i++)
+	{
+		//CreateOffset2(0, 1, 0, 0);
+		createOffset(i, 0);
+	}
+
+
+	/*for (int mainX = 0; mainX < noOfChars; mainX++)
+	{*/
+	/*for (int x = 0; x < noOfChars; x++)
+	{
+		test = "";
+		for (int y = 0; y < noOfLines; y++)
+		{
+			test.push_back(wheelChars[y].at(x));
+		}
+		finalStrings.emplace_back(test);
+	}*/
+	//}
+
+
+	for (int i = 0; i < finalStrings.size(); i++)
+	{
+		cout << endl << finalStrings[i];
+	}
 
 
 
 	// Loop through each argument and print its number and value
 	for (int count{ 0 }; count < argc; ++count)
 	{
-		std::cout << count << ' ' << argv[count] << '\n';
+		std::cout << endl << count << ' ' << argv[count] << '\n';
 	}
 	//}
 
