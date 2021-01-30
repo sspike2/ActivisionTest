@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 #include "FileIO.h"
 
@@ -15,7 +16,22 @@ using namespace std;
 int noOfLines, noOfChars;
 vector<string> wheelChars;
 vector<string> dictonary;
+vector<string> wheelCombinations;
+
 vector<string> finalStrings;
+
+
+int noOfMatches = 0;
+
+string test = "";
+
+
+template <typename T>
+void remove_duplicates(std::vector<T>& vec)
+{
+	std::sort(vec.begin(), vec.end());
+	vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+}
 
 
 void ReadWheel(string wheelPath)
@@ -45,6 +61,10 @@ void ReadDictonary(string path)
 	{
 		if (line.size() <= noOfChars)
 		{
+			//char* dict = 
+			//strstr()
+
+			std::transform(line.begin(), line.end(), line.begin(), ::toupper);
 			dictonary.emplace_back(line);
 		}
 	}
@@ -60,7 +80,7 @@ void ReadDictonary(string path)
 
 
 
-void createOffset(int mainX, int k)
+void CreateOffset(int mainX, int k)
 {
 
 	if (k == noOfChars)
@@ -76,66 +96,81 @@ void createOffset(int mainX, int k)
 		{
 			test.push_back(wheelChars[y].at(k));
 		}
-		finalStrings.emplace_back(test);
+		wheelCombinations.emplace_back(test);
 
-		createOffset(mainX, ++k);
+		CreateOffset(mainX, ++k);
 
 	}
 }
 
-string test = "";
 
-
-void CreateOffset2(int lockedX, int lockedY, int k, int l)
+void CreateWheelCombinations(int lockedX, int lockedY, int variableY, int variableX)
 {
-	if (k == noOfChars)
+
+	if (variableY == noOfLines)
 	{
-		if (lockedY < noOfChars)
-			lockedX++;
-		k = 0;
+		variableY = 0;
+		++variableX;
 	}
 
-
-	if (l == noOfLines)
-	{
-		if (lockedY < noOfLines)
-			lockedY++;
-		l = 0;
-	}
-
-	if (lockedX == noOfChars && lockedY == noOfLines)
+	if (variableX == noOfChars)
 	{
 		return;
 	}
 
-	for (int y = 0; y < noOfLines; y++)
+
+	if (variableY == lockedY)
 	{
-		if (y == 0)
-		{
-			test.push_back(wheelChars[y].at(lockedX));
-		}
-		else
-		{
-			if (y == lockedY)
-			{
-				test.push_back(wheelChars[y].at(l));
-				l++;
-			}
-			else
-			{
-				test.push_back(wheelChars[y].at(k));
-				k++;
-			}
-		}
+		char ch = wheelChars[variableY].at(lockedX);
+		test.push_back(ch);
+		//variableX--;
+
+	}
+	else
+	{
+		char ch = wheelChars[variableY].at(variableX);
+		test.push_back(ch);
 	}
 
-	finalStrings.push_back(test);
-	test = "";
 
 
-	CreateOffset2(lockedX, lockedY, k, l);
-
+	CreateWheelCombinations(lockedX, lockedY, ++variableY, variableX);
 }
+
+
+void CreateWheelCombinations2(int lockedX, int lockedY, int variableY, int variableX)
+{
+
+	if (variableY == 0)
+	{
+		variableY = noOfLines;
+		--variableX;
+	}
+
+	if (variableX == 0)
+	{
+		return;
+	}
+
+
+	if (variableY == lockedY)
+	{
+		char ch = wheelChars[variableY].at(lockedX);
+		test.push_back(ch);
+
+	}
+	else
+	{
+		char ch = wheelChars[variableY].at(variableX);
+		test.push_back(ch);
+	}
+
+
+
+	CreateWheelCombinations(lockedX, lockedY, --variableY, variableX);
+}
+
+
 
 
 
@@ -156,18 +191,17 @@ int main(int argc, char* argv[])
 	ReadDictonary(argv[2]);
 	////string 
 
-	string test = "";
 
 	int c = 0;
 
 
 	cout << c << endl << endl << endl;
 
-	for (int i = 0; i < noOfChars; i++)
-	{
+	//for (int i = 0; i < noOfChars; i++)
+	//{
 		//CreateOffset2(0, 1, 0, 0);
-		createOffset(i, 0);
-	}
+		//CreateOffset(i, 0);
+	//}
 
 
 	/*for (int mainX = 0; mainX < noOfChars; mainX++)
@@ -183,12 +217,79 @@ int main(int argc, char* argv[])
 	}*/
 	//}
 
+	for (int y = 0; y < noOfLines; y++)
+	{
+		for (int x = 0; x < noOfChars; x++)
+		{
+			CreateWheelCombinations(x, y, 0, 0);
+		}
+	}
+
+	for (int y = noOfLines; y == 0; y--)
+	{
+		for (int x = noOfChars; x == 0; x--)
+		{
+			CreateWheelCombinations2(x, y, noOfChars, noOfLines);
+		}
+	}
+
+
+
+
+
+	int i = 0;
+	while (test.size() != 0)
+	{
+
+		wheelCombinations.emplace_back(test.substr(i, noOfLines));
+		i += noOfLines;
+		if (i == test.size())
+		{
+			break;
+		}
+	}
+
+	remove_duplicates(wheelCombinations);
+
+
+
+	for (int i = 0; i < wheelCombinations.size(); i++)
+	{
+		cout << endl << wheelCombinations[i];
+	}
+
+	cout << endl << endl << endl;
+
+
+	for (int i = 0; i < wheelCombinations.size(); i++)
+	{
+		for (int j = 0; j < dictonary.size(); j++)
+		{
+
+			const char* dict = dictonary[j].c_str();
+			const char* currentCombination = wheelCombinations[i].c_str();
+
+			const char* result = strstr(currentCombination, dict);
+
+			if (result != NULL)
+			{
+				finalStrings.emplace_back(dict);
+			}
+		}
+	}
+
+	remove_duplicates(finalStrings);
+
+
+
+
 
 	for (int i = 0; i < finalStrings.size(); i++)
 	{
 		cout << endl << finalStrings[i];
 	}
 
+	cout << endl << "Matches found: " << finalStrings.size();
 
 
 	// Loop through each argument and print its number and value
