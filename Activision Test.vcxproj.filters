@@ -28,13 +28,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="wheels.txt">
-      <Filter>Resource Files</Filter>
-    </Text>
     <Text Include="wheels - Copy.txt">
       <Filter>Resource Files</Filter>
     </Text>
     <Text Include="dictionary.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="wheels - Copy (2).txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="wheels.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

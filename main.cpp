@@ -5,6 +5,9 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <chrono>
+#include <thread>
+#include <mutex>
 
 #include "FileIO.h"
 
@@ -23,7 +26,11 @@ vector<string> finalStrings;
 
 int noOfMatches = 0;
 
-string test = "";
+string fullCombinationList = "";
+string fullCombinationList2 = "";
+string fullCombinationList3 = "";
+
+mutex mu;
 
 
 template <typename T>
@@ -34,16 +41,21 @@ void remove_duplicates(std::vector<T>& vec)
 }
 
 
-void ReadWheel(string wheelPath)
+bool ReadWheel(string wheelPath)
 {
+
 	std::ifstream wheelFile(wheelPath);
+	if (wheelFile.fail())
+	{
+		return false;
+	}
+
 	wheelFile >> noOfLines;
 	wheelFile >> noOfChars;
 
 
 	for (int i = 0; i < noOfLines; i++)
 	{
-		wheelChars.push_back("");
 		for (int j = 0; j < noOfChars; j++)
 		{
 			char currentChar;
@@ -51,39 +63,37 @@ void ReadWheel(string wheelPath)
 			wheelChars[i].push_back(currentChar);
 		}
 	}
+	return true;
 }
 
 
-void ReadDictonary(string path)
+bool ReadDictonary(string path)
 {
 	ifstream dictoryFile(path);
+
+	if (dictoryFile.fail())
+	{
+		return false;
+	}
+
 	for (string line; getline(dictoryFile, line);)
 	{
-		if (line.size() <= noOfChars)
+		if (line.length() <= noOfLines)
 		{
-			//char* dict = 
-			//strstr()
-
 			std::transform(line.begin(), line.end(), line.begin(), ::toupper);
 			dictonary.emplace_back(line);
 		}
 	}
-
-	/*for (int i = 0; i < dictonary.size(); i++)
-	{
-		cout << dictonary[i] << endl;
-	}*/
-
-
+	return true;
 }
 
 
 
 
-void CreateOffset(int mainX, int k)
+void CreateOffset(int lockedX, int xPointer)
 {
 
-	if (k == noOfChars)
+	if (xPointer == noOfChars)
 	{
 		return;
 	}
@@ -91,89 +101,198 @@ void CreateOffset(int mainX, int k)
 	{
 		string test = "";
 
-		test.push_back(wheelChars[0].at(mainX));
+		test.push_back(wheelChars[0].at(lockedX));
 		for (int y = 1; y < noOfLines; y++)
 		{
-			test.push_back(wheelChars[y].at(k));
+			test.push_back(wheelChars[y].at(xPointer));
 		}
 		wheelCombinations.emplace_back(test);
 
-		CreateOffset(mainX, ++k);
-
+		CreateOffset(lockedX, ++xPointer);
 	}
 }
 
 
-void CreateWheelCombinations(int lockedX, int lockedY, int variableY, int variableX)
+void CreateWheelCombinations(int lockedX, int lockedY, int yPointer, int xPointer)
 {
 
-	if (variableY == noOfLines)
+	if (yPointer == noOfLines)
 	{
-		variableY = 0;
-		++variableX;
+		yPointer = 0;
+		xPointer++;
 	}
 
-	if (variableX == noOfChars)
+	if (xPointer == noOfChars) 	 return;
+
+	if (yPointer == lockedY)
 	{
-		return;
-	}
-
-
-	if (variableY == lockedY)
-	{
-		char ch = wheelChars[variableY].at(lockedX);
-		test.push_back(ch);
-		//variableX--;
-
+		char ch = wheelChars[yPointer].at(lockedX);
+		////mu.lock();
+		fullCombinationList.push_back(ch);
+		//mu.unlock();
 	}
 	else
 	{
-		char ch = wheelChars[variableY].at(variableX);
-		test.push_back(ch);
+		char ch = wheelChars[yPointer].at(xPointer);
+		//mu.lock();
+		fullCombinationList.push_back(ch);
+		//mu.unlock();
 	}
 
-
-
-	CreateWheelCombinations(lockedX, lockedY, ++variableY, variableX);
+	CreateWheelCombinations(lockedX, lockedY, ++yPointer, xPointer);
 }
 
 
-void CreateWheelCombinations2(int lockedX, int lockedY, int variableY, int variableX)
+void CreateWheelCombinations2(int lockedX, int lockedY, int yPointer, int xPointer, int noOfIterations, int xJumpValue)
 {
 
-	if (variableY == 0)
+	if (yPointer == noOfLines)
 	{
-		variableY = noOfLines;
-		--variableX;
+		yPointer = 0;
 	}
 
-	if (variableX == 0)
+	if (xPointer >= noOfChars)
 	{
-		return;
+		xPointer = 0;
+	}
+	/*if (xPointer > noOfChars)
+	{
+		xPointer = noOfChars - xJumpValue - 1;
+	}*/
+
+	if (noOfIterations == 0)
+	{
+		noOfIterations = noOfChars * noOfLines;
+		xJumpValue++;
 	}
 
+	if (xJumpValue == noOfChars) return;
 
-	if (variableY == lockedY)
+
+	if (yPointer == lockedY)
 	{
-		char ch = wheelChars[variableY].at(lockedX);
-		test.push_back(ch);
-
+		char ch = wheelChars[yPointer].at(lockedX);
+		//mu.lock();
+		fullCombinationList2.push_back(ch);
+		//mu.unlock();
 	}
 	else
 	{
-		char ch = wheelChars[variableY].at(variableX);
-		test.push_back(ch);
+		char ch = wheelChars[yPointer].at(xPointer);
+		//mu.lock();
+		fullCombinationList2.push_back(ch);
+		//mu.unlock();
 	}
 
+	xPointer += xJumpValue;
+
+	CreateWheelCombinations2(lockedX, lockedY, ++yPointer, xPointer, --noOfIterations, xJumpValue);
+}
 
 
-	CreateWheelCombinations(lockedX, lockedY, --variableY, variableX);
+
+void CreateWheelCombinations3(int lockedX, int lockedY, int yPointer, int xPointer, int noOfIterations, int xJumpValue)
+{
+	if (yPointer == noOfLines)
+	{
+		yPointer = 0;
+	}
+
+	if (xPointer <= 0)
+	{
+		xPointer = noOfChars - 1;
+	}
+	/*if (xPointer < 0)
+	{
+		xPointer = xJumpValue - 1;
+	}*/
+
+	if (noOfIterations == 0)
+	{
+		noOfIterations = noOfChars * noOfLines;
+		xJumpValue--;
+	}
+
+	if (xJumpValue == 0) return;
+
+
+	if (yPointer == lockedY)
+	{
+		char ch = wheelChars[yPointer].at(lockedX);
+		//mu.lock();
+		fullCombinationList3.push_back(ch);
+		//mu.unlock();
+	}
+	else
+	{
+		char ch = wheelChars[yPointer].at(xPointer);
+		//mu.lock();
+		fullCombinationList3.push_back(ch);
+		//mu.unlock();
+	}
+
+	xPointer -= xJumpValue;
+
+	CreateWheelCombinations3(lockedX, lockedY, ++yPointer, xPointer, --noOfIterations, xJumpValue);
 }
 
 
 
 
+void CreateCombinationsStraight()
+{
+	for (int y = 0; y < noOfLines; y++)
+	{
+		for (int x = 0; x < noOfChars; x++)
+		{
+			CreateWheelCombinations(x, y, 0, 0);
+		}
+	}
+}
 
+
+void CreateCombinationsDiagonalFwd()
+{
+	for (int y = 0; y < noOfLines; y++)
+	{
+		for (int x = 0; x < noOfChars; x++)
+		{
+			CreateWheelCombinations2(x, y, 0, 0, noOfLines * noOfChars, 1);
+		}
+	}
+}
+void CreateCombinationsDiagonalBckwd()
+{
+	for (int y = 0; y < noOfLines; y++)
+	{
+		for (int x = 0; x < noOfChars; x++)
+		{
+			CreateWheelCombinations3(x, y, 0, noOfChars - 1, noOfLines * noOfChars, noOfChars - 1);
+		}
+	}
+}
+
+
+
+void FindInDictonary(int startIndex, int endIndex, vector<string> outFile)
+{
+	for (int i = startIndex; i < endIndex; i++)
+	{
+		for (int j = 0; j < dictonary.size(); j++)
+		{
+			const char* dict = dictonary[j].c_str();
+			const char* currentCombination = wheelCombinations[i].c_str();
+
+			const char* result;
+			result = strstr(currentCombination, dict);
+
+			if (result != NULL)
+			{
+				outFile.emplace_back(dictonary[j]);
+			}
+		}
+	}
+}
 
 
 
@@ -187,63 +306,51 @@ int main(int argc, char* argv[])
 	}
 
 
-	ReadWheel(argv[1]);
-	ReadDictonary(argv[2]);
-	////string 
-
-
-	int c = 0;
-
-
-	cout << c << endl << endl << endl;
-
-	//for (int i = 0; i < noOfChars; i++)
-	//{
-		//CreateOffset2(0, 1, 0, 0);
-		//CreateOffset(i, 0);
-	//}
-
-
-	/*for (int mainX = 0; mainX < noOfChars; mainX++)
-	{*/
-	/*for (int x = 0; x < noOfChars; x++)
+	bool wheelRead = ReadWheel(argv[1]);
+	if (!wheelRead)
 	{
-		test = "";
-		for (int y = 0; y < noOfLines; y++)
-		{
-			test.push_back(wheelChars[y].at(x));
-		}
-		finalStrings.emplace_back(test);
-	}*/
-	//}
-
-	for (int y = 0; y < noOfLines; y++)
-	{
-		for (int x = 0; x < noOfChars; x++)
-		{
-			CreateWheelCombinations(x, y, 0, 0);
-		}
+		cout << "Wheel file not Read";
+		return 0;
 	}
 
-	for (int y = noOfLines; y == 0; y--)
+	bool DictoryRead = ReadDictonary(argv[2]);
+	if (!DictoryRead)
 	{
-		for (int x = noOfChars; x == 0; x--)
-		{
-			CreateWheelCombinations2(x, y, noOfChars, noOfLines);
-		}
+		cout << "Dictory file not Read";
+		return 0;
 	}
+
+
+
+
+
+	//CreateCombinationsStraight();
+	//CreateCombinationsDiagonalFwd();
+	//CreateCombinationsDiagonalBckwd();
+	thread t11(&CreateCombinationsStraight);
+	thread t12(&CreateCombinationsDiagonalFwd);
+	thread t13(&CreateCombinationsDiagonalBckwd);
+
+	t11.join();
+	t12.join();
+	t13.join();
+
+	//string::append()
+
+	fullCombinationList.append(fullCombinationList2);
+	fullCombinationList.append(fullCombinationList3);
+
 
 
 
 
 
 	int i = 0;
-	while (test.size() != 0)
+	while (fullCombinationList.size() != 0)
 	{
-
-		wheelCombinations.emplace_back(test.substr(i, noOfLines));
+		wheelCombinations.emplace_back(fullCombinationList.substr(i, noOfLines));
 		i += noOfLines;
-		if (i == test.size())
+		if (i == fullCombinationList.size())
 		{
 			break;
 		}
@@ -253,52 +360,55 @@ int main(int argc, char* argv[])
 
 
 
-	for (int i = 0; i < wheelCombinations.size(); i++)
+	/*for (int i = 0; i < wheelCombinations.size(); i++)
 	{
 		cout << endl << wheelCombinations[i];
-	}
+	}*/
 
-	cout << endl << endl << endl;
+	//cout << endl << endl << endl;
+
+	int wheelCombinationsdivided = wheelCombinations.size() / 4;
+
+	vector<string> finalStrings2;
+	vector<string> finalStrings3;
+	vector<string> finalStrings4;
 
 
-	for (int i = 0; i < wheelCombinations.size(); i++)
+	auto start = chrono::high_resolution_clock::now();
+
+	thread t1(FindInDictonary,                            0, wheelCombinationsdivided    , finalStrings);
+	thread t2(FindInDictonary, wheelCombinationsdivided    , wheelCombinationsdivided * 2, finalStrings2);
+	thread t3(FindInDictonary, wheelCombinationsdivided * 2, wheelCombinationsdivided * 3, finalStrings3);
+	thread t4(FindInDictonary, wheelCombinationsdivided * 2, wheelCombinations.size()    , finalStrings4);
+
+	t1.join();
+	t2.join();
+	t3.join();
+	t4.join();
+
+
+	for (int i = 0; i < finalStrings2.size(); i++)
 	{
-		for (int j = 0; j < dictonary.size(); j++)
-		{
-
-			const char* dict = dictonary[j].c_str();
-			const char* currentCombination = wheelCombinations[i].c_str();
-
-			const char* result = strstr(currentCombination, dict);
-
-			if (result != NULL)
-			{
-				finalStrings.emplace_back(dict);
-			}
-		}
+		finalStrings.emplace_back(finalStrings2[i]);
+	}
+	for (int i = 0; i < finalStrings3.size(); i++)
+	{
+		finalStrings.emplace_back(finalStrings3[i]);
+	}
+	for (int i = 0; i < finalStrings4.size(); i++)
+	{
+		finalStrings.emplace_back(finalStrings4[i]);
 	}
 
 	remove_duplicates(finalStrings);
 
+	auto stop = chrono::high_resolution_clock::now();
 
+	auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+	cout << endl << "Matches found: " << duration.count();
 
-
-
-	for (int i = 0; i < finalStrings.size(); i++)
-	{
-		cout << endl << finalStrings[i];
-	}
-
-	cout << endl << "Matches found: " << finalStrings.size();
-
-
-	// Loop through each argument and print its number and value
-	for (int count{ 0 }; count < argc; ++count)
-	{
-		std::cout << endl << count << ' ' << argv[count] << '\n';
-	}
-	//}
-
+	
+	return 0;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
